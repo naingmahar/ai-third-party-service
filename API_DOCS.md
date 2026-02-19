@@ -1,0 +1,443 @@
+# AI Third-Party Service — API Documentation
+
+Base URL: `http://localhost:3000`
+
+All responses follow this structure:
+```json
+{ "success": true/false, "data": {}, "error": "message" }
+```
+
+---
+
+## Authentication Flow
+
+Before using any API, authenticate once:
+1. Open browser → `GET /api/auth/login`
+2. Complete Google consent screen
+3. Tokens are saved automatically (valid for **3 months**)
+4. All subsequent API calls use the saved tokens automatically
+
+---
+
+## 1. Authentication
+
+### Login
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/auth/login` |
+| **Params** | None |
+| **Description** | Redirects to Google OAuth consent screen |
+
+### OAuth Callback *(handled automatically)*
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/auth/callback` |
+| **Params** | `code` (auto-provided by Google), `error` |
+| **Description** | Exchanges code for tokens and saves them |
+
+### Check Status
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/auth/status` |
+| **Params** | None |
+
+**Response:**
+```json
+{
+  "success": true,
+  "authenticated": true,
+  "tokenExpired": false,
+  "sessionExpired": false,
+  "hasRefreshToken": true,
+  "sessionExpiresAt": "2026-05-19T10:00:00.000Z",
+  "user": {
+    "id": "1234567890",
+    "email": "user@gmail.com",
+    "name": "John Doe",
+    "picture": "https://..."
+  },
+  "scopes": ["gmail.readonly", "calendar", "..."]
+}
+```
+
+### Logout
+| | |
+|---|---|
+| **Method** | `POST` |
+| **URL** | `/api/auth/logout` |
+| **Body** | None |
+| **Description** | Revokes tokens and clears saved session |
+
+---
+
+## 2. Gmail
+
+### List Emails
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/gmail` |
+
+| Query Param | Type | Default | Description |
+|---|---|---|---|
+| `q` | string | — | Gmail search query (e.g. `is:unread`, `from:boss@company.com`, `subject:invoice`) |
+| `maxResults` | number | `10` | Number of emails to return (max 500) |
+| `pageToken` | string | — | Token for next page (from previous response) |
+| `labelIds` | string | — | Comma-separated label IDs (e.g. `INBOX,UNREAD`) |
+| `profile` | boolean | — | Set `true` to get Gmail profile instead of emails |
+
+**Example Requests:**
+```
+GET /api/gmail
+GET /api/gmail?q=is:unread&maxResults=20
+GET /api/gmail?q=from:boss@company.com
+GET /api/gmail?labelIds=INBOX,UNREAD
+GET /api/gmail?profile=true
+```
+
+**Response (emails):**
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "18abc123",
+        "threadId": "18abc123",
+        "subject": "Meeting Tomorrow",
+        "from": "boss@company.com",
+        "to": "me@gmail.com",
+        "date": "Thu, 19 Feb 2026 10:00:00 +0000",
+        "snippet": "Hi, just a reminder...",
+        "body": "<full email body>",
+        "labelIds": ["INBOX", "UNREAD"]
+      }
+    ],
+    "nextPageToken": "abc123",
+    "resultSizeEstimate": 142
+  }
+}
+```
+
+**Response (profile):**
+```json
+{
+  "success": true,
+  "data": {
+    "emailAddress": "user@gmail.com",
+    "messagesTotal": 5423,
+    "threadsTotal": 1892
+  }
+}
+```
+
+---
+
+### Get Single Email
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/gmail/{id}` |
+
+| Query Param | Type | Default | Description |
+|---|---|---|---|
+| `type` | string | `message` | `message` for single email, `thread` for full thread |
+
+**Example Requests:**
+```
+GET /api/gmail/18abc123
+GET /api/gmail/18abc123?type=thread
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "18abc123",
+    "threadId": "18abc123",
+    "subject": "Meeting Tomorrow",
+    "from": "boss@company.com",
+    "to": "me@gmail.com",
+    "date": "Thu, 19 Feb 2026 10:00:00 +0000",
+    "body": "<full email body>",
+    "labelIds": ["INBOX"]
+  }
+}
+```
+
+---
+
+### Send Email
+| | |
+|---|---|
+| **Method** | `POST` |
+| **URL** | `/api/gmail` |
+| **Content-Type** | `application/json` |
+
+| Body Field | Type | Required | Description |
+|---|---|---|---|
+| `to` | string | Yes | Recipient email address |
+| `subject` | string | Yes | Email subject |
+| `body` | string | Yes | Email body content |
+| `isHtml` | boolean | No | Set `true` to send HTML email |
+| `cc` | string | No | CC email address |
+| `bcc` | string | No | BCC email address |
+
+**Example Body:**
+```json
+{
+  "to": "recipient@example.com",
+  "subject": "Hello from AI",
+  "body": "This email was sent by an AI agent.",
+  "isHtml": false,
+  "cc": "manager@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Email sent successfully",
+  "data": {
+    "id": "18abc456",
+    "threadId": "18abc456"
+  }
+}
+```
+
+---
+
+### Mark Email as Read
+| | |
+|---|---|
+| **Method** | `PATCH` |
+| **URL** | `/api/gmail/{id}` |
+| **Content-Type** | `application/json` |
+
+**Body:**
+```json
+{ "action": "markRead" }
+```
+
+**Response:**
+```json
+{ "success": true, "message": "Marked as read" }
+```
+
+---
+
+## 3. Google Calendar
+
+### List Events
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/calendar` |
+
+| Query Param | Type | Default | Description |
+|---|---|---|---|
+| `view` | string | `events` | `events` (upcoming), `today` (today only), `calendars` (list all calendars) |
+| `calendarId` | string | `primary` | Calendar ID (use `primary` for main calendar) |
+| `timeMin` | string | now | Start datetime in ISO format (e.g. `2026-02-01T00:00:00Z`) |
+| `timeMax` | string | — | End datetime in ISO format |
+| `maxResults` | number | `10` | Number of events to return |
+| `q` | string | — | Search query for event title/description |
+| `pageToken` | string | — | Token for next page |
+
+**Example Requests:**
+```
+GET /api/calendar
+GET /api/calendar?view=today
+GET /api/calendar?view=calendars
+GET /api/calendar?maxResults=20&timeMin=2026-02-01T00:00:00Z
+GET /api/calendar?q=standup
+```
+
+**Response (events):**
+```json
+{
+  "success": true,
+  "data": {
+    "events": [
+      {
+        "id": "abc123xyz",
+        "summary": "Team Standup",
+        "description": "Daily sync",
+        "location": "Zoom",
+        "start": { "dateTime": "2026-02-20T09:00:00+06:30", "timeZone": "Asia/Yangon" },
+        "end": { "dateTime": "2026-02-20T09:30:00+06:30", "timeZone": "Asia/Yangon" },
+        "attendees": [{ "email": "colleague@company.com" }],
+        "status": "confirmed",
+        "htmlLink": "https://calendar.google.com/event?eid=..."
+      }
+    ],
+    "nextPageToken": null
+  }
+}
+```
+
+---
+
+### Get Single Event
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/calendar/{id}` |
+
+| Query Param | Type | Default | Description |
+|---|---|---|---|
+| `calendarId` | string | `primary` | Calendar ID |
+
+```
+GET /api/calendar/abc123xyz
+GET /api/calendar/abc123xyz?calendarId=work@group.calendar.google.com
+```
+
+---
+
+### Create Event
+| | |
+|---|---|
+| **Method** | `POST` |
+| **URL** | `/api/calendar` |
+| **Content-Type** | `application/json` |
+
+| Body Field | Type | Required | Description |
+|---|---|---|---|
+| `summary` | string | Yes | Event title |
+| `startDateTime` | string | Yes | ISO datetime (e.g. `2026-02-20T09:00:00`) |
+| `endDateTime` | string | Yes | ISO datetime (e.g. `2026-02-20T10:00:00`) |
+| `description` | string | No | Event description |
+| `location` | string | No | Event location |
+| `timeZone` | string | No | Timezone (default `UTC`, e.g. `Asia/Yangon`) |
+| `attendees` | string[] | No | Array of attendee email addresses |
+| `calendarId` | string | No | Calendar ID (default `primary`) |
+
+**Example Body:**
+```json
+{
+  "summary": "AI Project Review",
+  "description": "Monthly review of AI integrations",
+  "location": "Conference Room A",
+  "startDateTime": "2026-02-25T14:00:00",
+  "endDateTime": "2026-02-25T15:00:00",
+  "timeZone": "Asia/Yangon",
+  "attendees": ["team@company.com", "manager@company.com"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Event created successfully",
+  "data": {
+    "id": "newEventId123",
+    "summary": "AI Project Review",
+    "htmlLink": "https://calendar.google.com/event?eid=...",
+    "start": { "dateTime": "2026-02-25T14:00:00", "timeZone": "Asia/Yangon" },
+    "end": { "dateTime": "2026-02-25T15:00:00", "timeZone": "Asia/Yangon" }
+  }
+}
+```
+
+---
+
+### Update Event
+| | |
+|---|---|
+| **Method** | `PATCH` |
+| **URL** | `/api/calendar/{id}` |
+| **Content-Type** | `application/json` |
+
+All body fields are optional — only send what you want to change.
+
+| Body Field | Type | Description |
+|---|---|---|
+| `summary` | string | New event title |
+| `description` | string | New description |
+| `location` | string | New location |
+| `startDateTime` | string | New start datetime |
+| `endDateTime` | string | New end datetime |
+| `timeZone` | string | Timezone |
+| `attendees` | string[] | Replace attendee list |
+| `calendarId` | string | Calendar ID (default `primary`) |
+
+**Example Body:**
+```json
+{
+  "summary": "AI Project Review (Rescheduled)",
+  "startDateTime": "2026-02-26T14:00:00",
+  "endDateTime": "2026-02-26T15:00:00"
+}
+```
+
+---
+
+### Delete Event
+| | |
+|---|---|
+| **Method** | `DELETE` |
+| **URL** | `/api/calendar/{id}` |
+
+| Query Param | Type | Default | Description |
+|---|---|---|---|
+| `calendarId` | string | `primary` | Calendar ID |
+
+```
+DELETE /api/calendar/abc123xyz
+```
+
+**Response:**
+```json
+{ "success": true, "message": "Event deleted" }
+```
+
+---
+
+## Error Responses
+
+| HTTP Status | Meaning |
+|---|---|
+| `400` | Bad request — missing or invalid parameters |
+| `500` | Server error — check if authenticated, or Google API error |
+
+**Error Response Format:**
+```json
+{
+  "success": false,
+  "error": "Description of what went wrong"
+}
+```
+
+---
+
+## Common Gmail Search Queries (`q` param)
+
+| Query | Description |
+|---|---|
+| `is:unread` | Unread emails |
+| `is:starred` | Starred emails |
+| `from:boss@company.com` | From specific sender |
+| `to:me@gmail.com` | Sent to specific address |
+| `subject:invoice` | Subject contains "invoice" |
+| `has:attachment` | Emails with attachments |
+| `after:2026/01/01` | Emails after a date |
+| `before:2026/02/01` | Emails before a date |
+| `label:work` | Emails with label "work" |
+| `is:unread from:boss@company.com` | Combine queries |
+
+---
+
+## Session & Token Notes
+
+- **Session duration:** 3 months from last login
+- **Access token:** Auto-refreshed every ~1 hour (transparent)
+- **Re-auth required:** After 3 months, or if user revokes access
+- **Check expiry:** `GET /api/auth/status` → `sessionExpiresAt`
+- **Tokens stored in:** `tokens.json` (gitignored, never committed)

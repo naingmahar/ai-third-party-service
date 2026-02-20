@@ -85,11 +85,11 @@ export async function createEvent(
     description: params.description,
     location: params.location,
     start: {
-      dateTime: params.startDateTime,
+      dateTime: normalizeDateTime(params.startDateTime),
       timeZone: params.timeZone || 'UTC',
     },
     end: {
-      dateTime: params.endDateTime,
+      dateTime: normalizeDateTime(params.endDateTime),
       timeZone: params.timeZone || 'UTC',
     },
     attendees: params.attendees?.map((email) => ({ email })),
@@ -123,10 +123,10 @@ export async function updateEvent(
     description: params.description ?? existing.description,
     location: params.location ?? existing.location,
     start: params.startDateTime
-      ? { dateTime: params.startDateTime, timeZone: params.timeZone || 'UTC' }
+      ? { dateTime: normalizeDateTime(params.startDateTime), timeZone: params.timeZone || 'UTC' }
       : existing.start,
     end: params.endDateTime
-      ? { dateTime: params.endDateTime, timeZone: params.timeZone || 'UTC' }
+      ? { dateTime: normalizeDateTime(params.endDateTime), timeZone: params.timeZone || 'UTC' }
       : existing.end,
     attendees: params.attendees
       ? params.attendees.map((email) => ({ email }))
@@ -172,6 +172,20 @@ export async function getTodayEvents(calendarId = 'primary'): Promise<CalendarEv
 }
 
 // ---- Helpers ----
+
+/**
+ * Normalize a datetime string to full RFC 3339 format required by Google Calendar API.
+ * Handles:
+ *   "2026-02-21T10:07"           → "2026-02-21T10:07:00"
+ *   "2026-02-21T10:07:00"        → "2026-02-21T10:07:00"  (unchanged)
+ *   "2026-02-21T10:07:00Z"       → "2026-02-21T10:07:00Z" (unchanged)
+ *   "2026-02-21T10:07:00+06:30"  → unchanged
+ */
+function normalizeDateTime(dt: string): string {
+  // If it already has seconds (HH:MM:SS) leave it alone
+  // Match pattern: T followed by HH:MM and nothing after (no seconds, no Z, no offset)
+  return dt.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+}
 
 function parseEvent(data: {
   id?: string | null;

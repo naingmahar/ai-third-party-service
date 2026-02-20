@@ -75,17 +75,18 @@ export async function sendEmail(params: SendEmailParams): Promise<{ id: string; 
   const ccLine = params.cc ? `Cc: ${params.cc}\r\n` : '';
   const bccLine = params.bcc ? `Bcc: ${params.bcc}\r\n` : '';
 
-  const raw = [
+  // Build headers array (filter empty cc/bcc lines), then append blank line + body
+  const headers = [
     `To: ${params.to}`,
-    ccLine.trim(),
-    bccLine.trim(),
+    ...(params.cc  ? [`Cc: ${params.cc}`]  : []),
+    ...(params.bcc ? [`Bcc: ${params.bcc}`] : []),
     `Subject: ${params.subject}`,
     `Content-Type: ${contentType}; charset=utf-8`,
-    '',
-    params.body,
-  ]
-    .filter(Boolean)
-    .join('\r\n');
+    `MIME-Version: 1.0`,
+  ];
+
+  // RFC 2822: headers and body MUST be separated by a blank line (\r\n\r\n)
+  const raw = headers.join('\r\n') + '\r\n\r\n' + params.body;
 
   const encodedMessage = Buffer.from(raw).toString('base64url');
 

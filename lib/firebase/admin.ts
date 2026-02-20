@@ -5,10 +5,15 @@ function getPrivateKey(): string {
   if (!key) {
     throw new Error('FIREBASE_PRIVATE_KEY environment variable is not set');
   }
-  // Vercel sometimes stores the key with BOTH literal \n and real newlines
-  // (mixed/corrupted). Fix: strip ALL newlines first, then replace literal \n.
-  // 1. Remove any real newlines that snuck in
-  // 2. Replace remaining literal \n with real newlines
+  // Three possible formats depending on how the env var was set:
+  // 1. Already has real newlines (local .env.local)  → use as-is
+  // 2. Has only literal \n (Vercel dashboard paste)  → replace \n → newline
+  // 3. Has BOTH (corrupted)                          → strip real newlines first, then replace literal \n
+  if (key.includes('\n') && !key.includes('\\n')) {
+    // Case 1: already valid PEM with real newlines
+    return key;
+  }
+  // Case 2 & 3: normalize by stripping any real newlines first, then replace literal \n
   return key.replace(/\n/g, '').replace(/\\n/g, '\n');
 }
 

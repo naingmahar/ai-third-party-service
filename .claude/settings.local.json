@@ -14,7 +14,13 @@
       "Bash(xargs:*)",
       "Bash(node:*)",
       "Bash(python3:*)",
-      "Bash(./node_modules/.bin/next dev:*)"
+      "Bash(./node_modules/.bin/next dev:*)",
+      "Bash(git push:*)",
+      "Bash(git remote add:*)",
+      "Bash(git fetch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote:*)"
     ]
   }
 }

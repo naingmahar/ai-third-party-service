@@ -9,7 +9,12 @@
       "Bash(npm run build:*)",
       "Bash(node /Users/naingmahar/naingmahar/AIThirdPartyService/node_modules/next/dist/bin/next build:*)",
       "Bash(npx next:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs:*)",
+      "Bash(node:*)",
+      "Bash(python3:*)",
+      "Bash(./node_modules/.bin/next dev:*)"
     ]
   }
 }

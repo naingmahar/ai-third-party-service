@@ -14,8 +14,9 @@ All responses follow this structure:
 Before using any API, authenticate once:
 1. Open browser → `GET /api/auth/login`
 2. Complete Google consent screen
-3. Tokens are saved automatically to **Firebase Firestore** (valid for **3 months**)
-4. All subsequent API calls use the saved tokens automatically
+3. On success — a **UI page** is shown with your profile, session expiry and navigation buttons
+4. Tokens are saved automatically to **Firebase Firestore** (valid for **3 months**)
+5. All subsequent API calls use the saved tokens automatically
 
 ---
 
@@ -42,7 +43,10 @@ GET https://ai-third-party-service-vercel.vercel.app/api/auth/login
 | **Method** | `GET` |
 | **URL** | `/api/auth/callback` |
 | **Params** | `code` (auto-provided by Google), `error` |
-| **Description** | Exchanges code for tokens and saves them to Firestore |
+| **Description** | Exchanges code for tokens, saves to Firestore, shows success/error UI page |
+
+**On success:** Shows UI with user profile picture, name, email, session expiry date and buttons to Playground / Home.
+**On error:** Shows UI with error message and Try Again / Home buttons.
 
 ---
 
@@ -376,13 +380,15 @@ GET https://ai-third-party-service-vercel.vercel.app/api/calendar/abc123xyz?cale
 | Body Field | Type | Required | Description |
 |---|---|---|---|
 | `summary` | string | Yes | Event title |
-| `startDateTime` | string | Yes | ISO datetime (e.g. `2026-02-20T09:00:00`) |
-| `endDateTime` | string | Yes | ISO datetime (e.g. `2026-02-20T10:00:00`) |
+| `startDateTime` | string | Yes | Datetime — `"2026-02-21T10:07"` or `"2026-02-21T10:07:00"` or `"2026-02-21T10:07:00+06:30"` |
+| `endDateTime` | string | Yes | Datetime — same formats as startDateTime |
 | `description` | string | No | Event description |
 | `location` | string | No | Event location |
 | `timeZone` | string | No | Timezone (default `UTC`, e.g. `Asia/Yangon`) |
 | `attendees` | string[] | No | Array of attendee email addresses |
 | `calendarId` | string | No | Calendar ID (default `primary`) |
+
+> **Note:** `startDateTime` and `endDateTime` accept short format without seconds (e.g. `"2026-02-21T10:07"`) — seconds are added automatically.
 
 **Example Request:**
 ```
@@ -390,13 +396,13 @@ POST https://ai-third-party-service-vercel.vercel.app/api/calendar
 ```
 ```json
 {
-  "summary": "AI Project Review",
-  "description": "Monthly review of AI integrations",
-  "location": "Conference Room A",
-  "startDateTime": "2026-02-25T14:00:00",
-  "endDateTime": "2026-02-25T15:00:00",
+  "summary": "Team Meeting",
+  "description": "Monthly sync",
+  "location": "Zoom",
+  "startDateTime": "2026-02-21T10:07",
+  "endDateTime": "2026-02-21T11:07",
   "timeZone": "Asia/Yangon",
-  "attendees": ["team@company.com", "manager@company.com"]
+  "attendees": ["colleague@example.com"]
 }
 ```
 
@@ -407,10 +413,10 @@ POST https://ai-third-party-service-vercel.vercel.app/api/calendar
   "message": "Event created successfully",
   "data": {
     "id": "newEventId123",
-    "summary": "AI Project Review",
+    "summary": "Team Meeting",
     "htmlLink": "https://calendar.google.com/event?eid=...",
-    "start": { "dateTime": "2026-02-25T14:00:00", "timeZone": "Asia/Yangon" },
-    "end": { "dateTime": "2026-02-25T15:00:00", "timeZone": "Asia/Yangon" }
+    "start": { "dateTime": "2026-02-21T10:07:00", "timeZone": "Asia/Yangon" },
+    "end": { "dateTime": "2026-02-21T11:07:00", "timeZone": "Asia/Yangon" }
   }
 }
 ```
@@ -443,9 +449,9 @@ PATCH https://ai-third-party-service-vercel.vercel.app/api/calendar/abc123xyz
 ```
 ```json
 {
-  "summary": "AI Project Review (Rescheduled)",
-  "startDateTime": "2026-02-26T14:00:00",
-  "endDateTime": "2026-02-26T15:00:00"
+  "summary": "Team Meeting (Rescheduled)",
+  "startDateTime": "2026-02-26T14:00",
+  "endDateTime": "2026-02-26T15:00"
 }
 ```
 
@@ -506,6 +512,19 @@ DELETE https://ai-third-party-service-vercel.vercel.app/api/calendar/abc123xyz
 | `before:2026/02/01` | Emails before a date |
 | `label:work` | Emails with label "work" |
 | `is:unread from:boss@company.com` | Combine queries |
+
+---
+
+## Datetime Format Reference
+
+Calendar API accepts flexible datetime formats — seconds are optional:
+
+| Format | Example | Supported |
+|---|---|---|
+| Short (no seconds) | `2026-02-21T10:07` | ✅ Auto-normalized |
+| With seconds | `2026-02-21T10:07:00` | ✅ |
+| UTC | `2026-02-21T10:07:00Z` | ✅ |
+| With offset | `2026-02-21T10:07:00+06:30` | ✅ |
 
 ---
 

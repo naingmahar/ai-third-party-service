@@ -5,14 +5,11 @@ function getPrivateKey(): string {
   if (!key) {
     throw new Error('FIREBASE_PRIVATE_KEY environment variable is not set');
   }
-  // Vercel can store the key in two ways:
-  // 1. With literal \n characters (needs replacement)
-  // 2. With real newlines already (no replacement needed)
-  // Handle both cases:
-  if (key.includes('\\n')) {
-    return key.replace(/\\n/g, '\n');
-  }
-  return key;
+  // Vercel sometimes stores the key with BOTH literal \n and real newlines
+  // (mixed/corrupted). Fix: strip ALL newlines first, then replace literal \n.
+  // 1. Remove any real newlines that snuck in
+  // 2. Replace remaining literal \n with real newlines
+  return key.replace(/\n/g, '').replace(/\\n/g, '\n');
 }
 
 function initFirebase() {

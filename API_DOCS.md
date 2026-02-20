@@ -1,6 +1,6 @@
 # AI Third-Party Service — API Documentation
 
-Base URL: `http://localhost:3000`
+Base URL: `https://ai-third-party-service-vercel.vercel.app`
 
 All responses follow this structure:
 ```json
@@ -14,7 +14,7 @@ All responses follow this structure:
 Before using any API, authenticate once:
 1. Open browser → `GET /api/auth/login`
 2. Complete Google consent screen
-3. Tokens are saved automatically (valid for **3 months**)
+3. Tokens are saved automatically to **Firebase Firestore** (valid for **3 months**)
 4. All subsequent API calls use the saved tokens automatically
 
 ---
@@ -29,20 +29,33 @@ Before using any API, authenticate once:
 | **Params** | None |
 | **Description** | Redirects to Google OAuth consent screen |
 
+**Example:**
+```
+GET https://ai-third-party-service-vercel.vercel.app/api/auth/login
+```
+
+---
+
 ### OAuth Callback *(handled automatically)*
 | | |
 |---|---|
 | **Method** | `GET` |
 | **URL** | `/api/auth/callback` |
 | **Params** | `code` (auto-provided by Google), `error` |
-| **Description** | Exchanges code for tokens and saves them |
+| **Description** | Exchanges code for tokens and saves them to Firestore |
+
+---
 
 ### Check Status
 | | |
 |---|---|
 | **Method** | `GET` |
 | **URL** | `/api/auth/status` |
-| **Params** | None |
+
+**Example:**
+```
+GET https://ai-third-party-service-vercel.vercel.app/api/auth/status
+```
 
 **Response:**
 ```json
@@ -63,13 +76,50 @@ Before using any API, authenticate once:
 }
 ```
 
+---
+
 ### Logout
 | | |
 |---|---|
 | **Method** | `POST` |
 | **URL** | `/api/auth/logout` |
 | **Body** | None |
-| **Description** | Revokes tokens and clears saved session |
+| **Description** | Revokes tokens and clears saved session from Firestore |
+
+**Example:**
+```
+POST https://ai-third-party-service-vercel.vercel.app/api/auth/logout
+```
+
+---
+
+### Debug *(for diagnosing config issues)*
+| | |
+|---|---|
+| **Method** | `GET` |
+| **URL** | `/api/auth/debug` |
+| **Description** | Returns env var status and Firebase connectivity check |
+
+**Example:**
+```
+GET https://ai-third-party-service-vercel.vercel.app/api/auth/debug
+```
+
+**Response:**
+```json
+{
+  "env": {
+    "GOOGLE_CLIENT_ID": "set (79311278...)",
+    "FIREBASE_PROJECT_ID": "your-project-id",
+    "TOKEN_STORAGE": "firestore",
+    "FIREBASE_PRIVATE_KEY": "set (1735 chars ...)"
+  },
+  "firebase": {
+    "status": "initialized",
+    "firestore": "reachable"
+  }
+}
+```
 
 ---
 
@@ -91,11 +141,11 @@ Before using any API, authenticate once:
 
 **Example Requests:**
 ```
-GET /api/gmail
-GET /api/gmail?q=is:unread&maxResults=20
-GET /api/gmail?q=from:boss@company.com
-GET /api/gmail?labelIds=INBOX,UNREAD
-GET /api/gmail?profile=true
+GET https://ai-third-party-service-vercel.vercel.app/api/gmail
+GET https://ai-third-party-service-vercel.vercel.app/api/gmail?q=is:unread&maxResults=20
+GET https://ai-third-party-service-vercel.vercel.app/api/gmail?q=from:boss@company.com
+GET https://ai-third-party-service-vercel.vercel.app/api/gmail?labelIds=INBOX,UNREAD
+GET https://ai-third-party-service-vercel.vercel.app/api/gmail?profile=true
 ```
 
 **Response (emails):**
@@ -148,8 +198,8 @@ GET /api/gmail?profile=true
 
 **Example Requests:**
 ```
-GET /api/gmail/18abc123
-GET /api/gmail/18abc123?type=thread
+GET https://ai-third-party-service-vercel.vercel.app/api/gmail/18abc123
+GET https://ai-third-party-service-vercel.vercel.app/api/gmail/18abc123?type=thread
 ```
 
 **Response:**
@@ -183,18 +233,30 @@ GET /api/gmail/18abc123?type=thread
 | `to` | string | Yes | Recipient email address |
 | `subject` | string | Yes | Email subject |
 | `body` | string | Yes | Email body content |
-| `isHtml` | boolean | No | Set `true` to send HTML email |
+| `isHtml` | boolean | No | Set `true` to send HTML email (default `false`) |
 | `cc` | string | No | CC email address |
 | `bcc` | string | No | BCC email address |
 
-**Example Body:**
+**Example Request:**
+```
+POST https://ai-third-party-service-vercel.vercel.app/api/gmail
+```
 ```json
 {
   "to": "recipient@example.com",
   "subject": "Hello from AI",
   "body": "This email was sent by an AI agent.",
-  "isHtml": false,
-  "cc": "manager@example.com"
+  "isHtml": false
+}
+```
+
+**HTML Email Example:**
+```json
+{
+  "to": "recipient@example.com",
+  "subject": "Hello from AI",
+  "body": "<h1>Hello!</h1><p>This is an <b>HTML</b> email.</p>",
+  "isHtml": true
 }
 ```
 
@@ -219,7 +281,10 @@ GET /api/gmail/18abc123?type=thread
 | **URL** | `/api/gmail/{id}` |
 | **Content-Type** | `application/json` |
 
-**Body:**
+**Example Request:**
+```
+PATCH https://ai-third-party-service-vercel.vercel.app/api/gmail/18abc123
+```
 ```json
 { "action": "markRead" }
 ```
@@ -251,11 +316,11 @@ GET /api/gmail/18abc123?type=thread
 
 **Example Requests:**
 ```
-GET /api/calendar
-GET /api/calendar?view=today
-GET /api/calendar?view=calendars
-GET /api/calendar?maxResults=20&timeMin=2026-02-01T00:00:00Z
-GET /api/calendar?q=standup
+GET https://ai-third-party-service-vercel.vercel.app/api/calendar
+GET https://ai-third-party-service-vercel.vercel.app/api/calendar?view=today
+GET https://ai-third-party-service-vercel.vercel.app/api/calendar?view=calendars
+GET https://ai-third-party-service-vercel.vercel.app/api/calendar?maxResults=20&timeMin=2026-02-01T00:00:00Z
+GET https://ai-third-party-service-vercel.vercel.app/api/calendar?q=standup
 ```
 
 **Response (events):**
@@ -293,9 +358,10 @@ GET /api/calendar?q=standup
 |---|---|---|---|
 | `calendarId` | string | `primary` | Calendar ID |
 
+**Example Requests:**
 ```
-GET /api/calendar/abc123xyz
-GET /api/calendar/abc123xyz?calendarId=work@group.calendar.google.com
+GET https://ai-third-party-service-vercel.vercel.app/api/calendar/abc123xyz
+GET https://ai-third-party-service-vercel.vercel.app/api/calendar/abc123xyz?calendarId=work@group.calendar.google.com
 ```
 
 ---
@@ -318,7 +384,10 @@ GET /api/calendar/abc123xyz?calendarId=work@group.calendar.google.com
 | `attendees` | string[] | No | Array of attendee email addresses |
 | `calendarId` | string | No | Calendar ID (default `primary`) |
 
-**Example Body:**
+**Example Request:**
+```
+POST https://ai-third-party-service-vercel.vercel.app/api/calendar
+```
 ```json
 {
   "summary": "AI Project Review",
@@ -368,7 +437,10 @@ All body fields are optional — only send what you want to change.
 | `attendees` | string[] | Replace attendee list |
 | `calendarId` | string | Calendar ID (default `primary`) |
 
-**Example Body:**
+**Example Request:**
+```
+PATCH https://ai-third-party-service-vercel.vercel.app/api/calendar/abc123xyz
+```
 ```json
 {
   "summary": "AI Project Review (Rescheduled)",
@@ -389,8 +461,9 @@ All body fields are optional — only send what you want to change.
 |---|---|---|---|
 | `calendarId` | string | `primary` | Calendar ID |
 
+**Example Request:**
 ```
-DELETE /api/calendar/abc123xyz
+DELETE https://ai-third-party-service-vercel.vercel.app/api/calendar/abc123xyz
 ```
 
 **Response:**
@@ -406,12 +479,14 @@ DELETE /api/calendar/abc123xyz
 |---|---|
 | `400` | Bad request — missing or invalid parameters |
 | `500` | Server error — check if authenticated, or Google API error |
+| `503` | Service disabled |
 
 **Error Response Format:**
 ```json
 {
   "success": false,
-  "error": "Description of what went wrong"
+  "error": "Description of what went wrong",
+  "details": "Detailed error message"
 }
 ```
 
@@ -440,4 +515,4 @@ DELETE /api/calendar/abc123xyz
 - **Access token:** Auto-refreshed every ~1 hour (transparent)
 - **Re-auth required:** After 3 months, or if user revokes access
 - **Check expiry:** `GET /api/auth/status` → `sessionExpiresAt`
-- **Tokens stored in:** `tokens.json` (gitignored, never committed)
+- **Token storage:** Firebase Firestore (collection: `oauth_tokens`, doc: `default`)
